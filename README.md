@@ -9,7 +9,9 @@ Da bi skripta funkcionisala na vasem sistemu potrebno je da u 'chkweb.py' fajlu 
 Uputstvo za koriscenje:
 
 Ispravna upotreba:      chkweb <opcije> <link/nadimak> <nadimak>
+        
 Opcije:
+
         bez opcije              ispisuje ovaj help
         help                    ispisuje ovaj help
         -l                      ispisuje logove
