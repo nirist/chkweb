@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# sporazumevanje izmedju argumenata bash i python skripte
+arg1=''
+if [ -n $1 ]
+then
+	arg1=$1
+fi
+
+arg2=''
+if [ -n $2 ]
+then
+	arg2=$2
+fi
+
+arg3=''
+if [ -n $3 ]
+then
+	arg3=$3
+fi
+
+python3.8 /home/ris/Documents/bashscripts/chkweb_data/chkweb.py $arg1 $arg2 $arg3
