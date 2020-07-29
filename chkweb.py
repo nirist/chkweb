@@ -169,6 +169,7 @@ elif sys.argv[1] == '-r' and len(sys.argv) == 3:
 			line = line.strip().split()
 			# ako je nadjen sajt, brise se ta linija iz lines
 			if line[1] == sys.argv[2]:
+				website = line[0]
 				found = True
 				line.pop()	
 	# ako je nadjen prepravlja se 'websites.txt'
@@ -182,8 +183,6 @@ elif sys.argv[1] == '-r' and len(sys.argv) == 3:
 			f.write(time + '\tobrisan ' + website + ' ' + sys.argv[2] + '\n')
 	else:
 		print('Sajt sa nadimkom ' + sys.argv[2] + ' nije pronadjen u listi')			
-
-	print('a')
 
 # '-c <nadimak>' sajt sa datim nadimkom stavlja u komentar
 elif sys.argv[1] == '-c' and len(sys.argv) == 3:
