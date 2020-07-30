@@ -49,6 +49,18 @@ time = now.strftime("%d-%m-%Y %H:%M:%S")
 # za argumente
 import sys
 
+# za proveru da li je fajl prazan
+import os
+
+# treba napraviti odvojene funkcije za:
+	# proveru da li je prosledjeni fajl prazan ili ima samo newline karaktere (vraca bool) (bitno ako nisu inicijalizovani fajlovi)
+	# pronalazenje website preko linka (vraca [link, nadimak])
+	# pronalazenje website preko nadimka (vraca [link, nadimak])
+	# dodavanje novog website
+	# uklanjanje website preko nadimka
+# kod za njih se moze naci dole u skripti, samo ih treba lepo formatirati i prekucati sve kako treba ponovo
+# prosto da bi urednije izgledao kod i mozda malo bolje radilo (barem sigurno sto se tice inicijalizacije fajlova)
+
 # pomocna funkcija za ispis help-a
 def print_help():
 	print('Ispravna upotreba:'+'\t'+'chkweb <opcije> <link/nadimak> <nadimak>')
@@ -257,6 +269,7 @@ elif sys.argv[1] == '-u' and len(sys.argv) == 2:
 	if not connection:
 		quit()
 		
+	# dobijanje html kodova
 	new_html = [ req.get(websites[i]).text for i in range(0, size) ]
 
 	#objekat za hashovanje
@@ -266,80 +279,87 @@ elif sys.argv[1] == '-u' and len(sys.argv) == 2:
 	for i in range(0, size):
 		sha_obj.update(str.encode(new_html[i]))
 		new_hash.append(sha_obj.digest())
+	
+	# ako 'hash.txt' nije prazan sve je okej
+	if os.stat(path + 'hash.txt').st_size != 0:
+		# citanje proslih hashova i nadimaka
+		with open(path + 'hash.txt') as f:
+			lines = [ line.strip().split() for line in f ]
+			old_time = lines[0][0] + ' ' + lines[0][1]
+			old_nicknames = [ lines[i][0] for i in range(1, len(lines))]
+			old_hash = [ lines[i][1] for i in range(1, len(lines))]
+			
+		# provera da li je dodat sajt i ako jeste, upisati u log
+		#ovde se cuvaju indeksi koji ce posle morati da budu preskoceni jer ne postoji prethodni hash sa kojim se poredi novi
+		index2skip = []
+		if len(new_hash) > len(old_hash):
+			for i in range(0, len(new_nicknames)):
+				found = False
+				for j in range(0, len(old_nicknames)):
+					if new_nicknames[i] == old_nicknames[j]:
+						found = True
+				# ako se ne nadje novi sajt u listi starih upisati u log da je dodat
+				if not found:
+					index2skip.append(i)
+					with open(path + 'log.txt', 'a') as f:
+						f.write(time + '\tprvi put pristupljeno ' + new_nicknames[i] + ' ' + websites[i] + '\n')
+						
+		# provera da li je sklonjen sajt i ako jeste, upisati u log
+		if len(old_hash) > len(new_hash):
+			for i in range(0, len(old_nicknames)):
+				found = False
+				for j in range(0, len(new_nicknames)):
+					if old_nicknames[i] == new_nicknames[j]:
+						found = True
+				# ako se ne nadje stari sajt u listi novih upisati u log da je sklonjen
+				if not found:
+					with open(path + 'log.txt', 'a') as f:
+						f.write(time + '\tprimeceno da je sklonjen ' + old_nicknames[i] + '\n')
 
-	# citanje proslih hashova i nadimaka
-	with open(path + 'hash.txt') as f:
-		lines = [ line.strip().split() for line in f ]
-		old_time = lines[0][0] + ' ' + lines[0][1]
-		old_nicknames = [ lines[i][0] for i in range(1, len(lines))]
-		old_hash = [ lines[i][1] for i in range(1, len(lines))]
-		
-	# provera da li je dodat sajt i ako jeste, upisati u log
-	#ovde se cuvaju indeksi koji ce posle morati da budu preskoceni jer ne postoji prethodni hash sa kojim se poredi novi
-	index2skip = []
-	if len(new_hash) > len(old_hash):
+		# poredjenje hasheva, gledanje koji su se promenili, upis u hashes.txt i promptovati da li otvoriti sajtove koji su bili izmenjeni
+
+		# recnik sa starim nadimcima i njihovim hashevima
+		old_dict = dict(zip(old_nicknames, old_hash))
+
+		# ovde se cuvaju svi indexi sajtova koji su bili menjani
+		changed = []
+		# prolazak kroz sve nove nadimke i poredjenje hasheva
 		for i in range(0, len(new_nicknames)):
-			found = False
-			for j in range(0, len(old_nicknames)):
-				if new_nicknames[i] == old_nicknames[j]:
-					found = True
-			# ako se ne nadje novi sajt u listi starih upisati u log da je dodat
-			if not found:
-				index2skip.append(i)
-				with open(path + 'log.txt', 'a') as f:
-					f.write(time + '\tprvi put pristupljeno ' + new_nicknames[i] + ' ' + websites[i] + '\n')
+			# obratiti paznju ako je dodat novi sajt da se ne trazi njegov stari hash
+			if i not in index2skip:
+				# ako se razlikuju hashevi zapamtiti koji su
+				if str(new_hash[i]) != old_dict[new_nicknames[i]]:
+					changed.append(i)
+
+		# cuvanje novog hash.txt
+		with open(path + 'hash.txt', 'w') as f:
+			f.write(time + '\n')
+			[f.write(new_nicknames[i] + ' ' + str(new_hash[i]) + '\n') for i in range(0, size)]
+			
 					
-	# provera da li je sklonjen sajt i ako jeste, upisati u log
-	if len(old_hash) > len(new_hash):
-		for i in range(0, len(old_nicknames)):
-			found = False
-			for j in range(0, len(new_nicknames)):
-				if old_nicknames[i] == new_nicknames[j]:
-					found = True
-			# ako se ne nadje stari sajt u listi novih upisati u log da je sklonjen
-			if not found:
-				with open(path + 'log.txt', 'a') as f:
-					f.write(time + '\tprimeceno da je sklonjen ' + old_nicknames[i] + '\n')
-
-	# poredjenje hasheva, gledanje koji su se promenili, upis u hashes.txt i promptovati da li otvoriti sajtove koji su bili izmenjeni
-
-	# recnik sa starim nadimcima i njihovim hashevima
-	old_dict = dict(zip(old_nicknames, old_hash))
-
-	# ovde se cuvaju svi indexi sajtova koji su bili menjani
-	changed = []
-	# prolazak kroz sve nove nadimke i poredjenje hasheva
-	for i in range(0, len(new_nicknames)):
-		# obratiti paznju ako je dodat novi sajt da se ne trazi njegov stari hash
-		if i not in index2skip:
-			# ako se razlikuju hashevi zapamtiti koji su
-			if str(new_hash[i]) != old_dict[new_nicknames[i]]:
-				changed.append(i)
-
-	# cuvanje novog hash.txt
-	with open(path + 'hash.txt', 'w') as f:
-		f.write(time + '\n')
-		[f.write(new_nicknames[i] + ' ' + str(new_hash[i]) + '\n') for i in range(0, size)]
-		
-				
-	# ako je neki sajt bio menjan
-	if len(changed) > 0:
-		print("Sajtovi koji su promenjeni od " + old_time + " su:")
-		for i in changed:
-			print(new_nicknames[i])
-		# pitati korisnika da li zeli da ih otvori
-		print("Zelite li da otvorite te sajtove? [y/N]")
-		usr = input()
-		if usr == 'y' or usr == 'Y':
-			# prvi link se otvara u novom prozoru, naredni kao tabovi
-			webbrowser.open(websites[changed[0]], new=1)
-			for i in changed[1:]:
-				webbrowser.open(websites[changed[i]], new = 2)
-	# ako nije nijedan sajt bio menjan, obavestiti i o tome
+		# ako je neki sajt bio menjan
+		if len(changed) > 0:
+			print("Sajtovi koji su promenjeni od " + old_time + " su:")
+			for i in changed:
+				print(new_nicknames[i])
+			# pitati korisnika da li zeli da ih otvori
+			print("Zelite li da otvorite te sajtove? [y/N]")
+			usr = input()
+			if usr == 'y' or usr == 'Y':
+				# prvi link se otvara u novom prozoru, naredni kao tabovi
+				webbrowser.open(websites[changed[0]], new=1)
+				for i in changed[1:]:
+					webbrowser.open(websites[changed[i]], new = 2)
+		# ako nije nijedan sajt bio menjan, obavestiti i o tome
+		else:
+			print("Nijedan od sajtova nije menjan od poslednje provere: " + old_time)
+	# ako je 'hash.txt' prazan, treba ga kreirati
 	else:
-		print("Nijedan od sajtova nije menjan od poslednje provere: " + old_time)
-
+		print("Inicijalizacija fajla 'hash.txt'")
+		with open(path + 'hash.txt', 'w') as f:
+			f.write(time + '\n')
+			[f.write(new_nicknames[i] + ' ' + str(new_hash[i]) + '\n') for i in range(0, size)]
+			
 else:
 	print('Neispravna upotreba')
 	print_help()
-
